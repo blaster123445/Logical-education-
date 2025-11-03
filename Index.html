@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Doubt Solver</title>
+<style>
+  body { font-family: 'Poppins', sans-serif; margin: 0; padding: 0; text-align: center; background: #f5f5f5; }
+  h1, h2 { color: #333; }
+  button { background: #4CAF50; color: white; border: none; padding: 10px 20px; margin: 10px; cursor: pointer; border-radius: 8px; font-size: 16px; }
+  button:hover { background: #45a049; }
+  .container { padding: 30px; }
+  .hidden { display: none; }
+  textarea, input { width: 80%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-top: 10px; font-size: 16px; }
+  #questions { margin-top: 20px; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  #answerBox { white-space: pre-wrap; margin-top: 20px; background: white; padding: 15px; border-radius: 10px; max-width: 600px; margin-left: auto; margin-right: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+</style>
+</head>
+<body>
+
+<div id="getStarted" class="container">
+  <h1>Welcome to Math Doubt Solver</h1>
+  <button onclick="showNickname()">Get Started</button>
+</div>
+
+<div id="nicknamePage" class="container hidden">
+  <h2>Enter Your Nickname</h2>
+  <input type="text" id="nicknameInput" placeholder="Enter nickname">
+  <br><button onclick="saveNickname()">Continue</button>
+</div>
+
+<div id="chapterPage" class="container hidden">
+  <h2>Math’s Chapters</h2>
+  <div id="chapters"></div>
+</div>
+
+<div id="questionPage" class="container hidden">
+  <h2 id="chapterTitle"></h2>
+  <button onclick="showAskQuestion()">Post Question</button>
+  <button onclick="showDoubtSolver()">Ask Doubt 🤔</button>
+  <div id="askQuestion" class="hidden">
+    <textarea id="questionInput" placeholder="Type your question"></textarea><br>
+    <button onclick="postQuestion()">Submit</button>
+  </div>
+  <div id="questions"></div>
+  <div id="doubtSolver" class="hidden">
+    <textarea id="doubtInput" placeholder="Type any math, IQ, or concept question"></textarea><br>
+    <button onclick="askAI()">Get Answer</button>
+    <div id="answerBox"></div>
+  </div>
+  <br><button onclick="goBack()">⬅ Back to Chapters</button>
+</div>
+
+<script>
+// --- Local storage system ---
+let users = JSON.parse(localStorage.getItem("users") || "[]");
+let currentUser = localStorage.getItem("currentUser");
+let questions = JSON.parse(localStorage.getItem("questions") || "{}");
+
+const chapters = [
+  "Rational Numbers", "Linear Equations in One Variable", "Understanding Quadrilaterals",
+  "Data Handling", "Squares and Square Roots", "Cubes and Cube Roots",
+  "Comparing Quantities", "Algebraic Expressions and Identities", "Mensuration",
+  "Exponents and Powers", "Direct and Inverse Proportions", "Factorisation", "Introduction to Graphs"
+];
+
+if (currentUser) showChapters();
+
+function showNickname() {
+  document.getElementById("getStarted").classList.add("hidden");
+  document.getElementById("nicknamePage").classList.remove("hidden");
+}
+
+function saveNickname() {
+  const name = document.getElementById("nicknameInput").value.trim();
+  if (!name) return alert("Please enter a nickname!");
+  if (users.includes(name)) return alert("Nickname already taken!");
+  users.push(name);
+  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("currentUser", name);
+  currentUser = name;
+  showChapters();
+}
+
+function showChapters() {
+  document.getElementById("nicknamePage").classList.add("hidden");
+  document.getElementById("getStarted").classList.add("hidden");
+  document.getElementById("chapterPage").classList.remove("hidden");
+  const div = document.getElementById("chapters");
+  div.innerHTML = "";
+  chapters.forEach(ch => {
+    const btn = document.createElement("button");
+    btn.textContent = ch;
+    btn.onclick = () => openChapter(ch);
+    div.appendChild(btn);
+  });
+}
+
+let currentChapter = "";
+
+function openChapter(ch) {
+  currentChapter = ch;
+  localStorage.setItem("currentChapter", ch);
+  document.getElementById("chapterPage").classList.add("hidden");
+  document.getElementById("questionPage").classList.remove("hidden");
+  document.getElementById("chapterTitle").innerText = ch;
+  loadQuestions();
+}
+
+function showAskQuestion() {
+  document.getElementById("askQuestion").classList.toggle("hidden");
+}
+
+function showDoubtSolver() {
+  document.getElementById("doubtSolver").classList.toggle("hidden");
+}
+
+function postQuestion() {
+  const q = document.getElementById("questionInput").value.trim();
+  if (!q) return alert("Please type a question!");
+  if (!questions[currentChapter]) questions[currentChapter] = [];
+  questions[currentChapter].push({ user: currentUser, text: q });
+  localStorage.setItem("questions", JSON.stringify(questions));
+  document.getElementById("questionInput").value = "";
+  loadQuestions();
+}
+
+function loadQuestions() {
+  const div = document.getElementById("questions");
+  div.innerHTML = "<h3>Posted Questions:</h3>";
+  (questions[currentChapter] || []).forEach(q => {
+    div.innerHTML += `<p><b>${q.user}:</b> ${q.text}</p>`;
+  });
+}
+
+function goBack() {
+  document.getElementById("questionPage").classList.add("hidden");
+  document.getElementById("chapterPage").classList.remove("hidden");
+}
+
+// --- AI Doubt Solver ---
+// This will work once you deploy backend (Netlify/Vercel) with safe API key
+async function askAI() {
+  const question = document.getElementById("doubtInput").value.trim();
+  const box = document.getElementById("answerBox");
+  if (!question) return alert("Please enter your doubt!");
+  box.innerText = "Thinking...";
+  try {
+    // Call your backend function here
+    const response = await fetch("/.netlify/functions/askAI", {  // or Vercel endpoint
+      method: "POST",
+      body: JSON.stringify({ question }),
+    });
+    const data = await response.json();
+    box.innerText = "💡 " + data.choices[0].message.content;
+  } catch (e) {
+    box.innerText = "⚠️ Error: " + e.message;
+  }
+}
+</script>
+</body>
+</html>
