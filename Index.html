@@ -1,79 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Doubt Solver</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f0f0f0;
-      padding: 40px;
-    }
-    h1 {
-      color: #3e3e3e;
-    }
-    input {
-      width: 70%;
-      padding: 10px;
-      font-size: 16px;
-      margin-top: 20px;
-      border: 2px solid #aaa;
-      border-radius: 10px;
-    }
-    button {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      margin-left: 10px;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    #answer {
-      background: white;
-      border-radius: 10px;
-      margin-top: 30px;
-      padding: 15px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Math Learning Portal</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #f5f5f5;
+    margin: 0;
+    padding: 0;
+  }
+  .page {
+    display: none;
+    padding: 20px;
+  }
+  .active {
+    display: block;
+  }
+  button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 5px;
+  }
+  input, textarea {
+    width: 80%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #aaa;
+    margin-top: 10px;
+  }
+  .chapter {
+    background: white;
+    border-radius: 10px;
+    margin: 10px auto;
+    padding: 15px;
+    max-width: 400px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+</style>
 </head>
 <body>
-  <h1>🤖 Doubt Solver</h1>
-  <p>Ask any math, IQ, or concept question below:</p>
-  
-  <input id="question" type="text" placeholder="Type your question here..." />
-  <button onclick="getAnswer()">Get Answer</button>
-  
-  <div id="answer">Your answer will appear here...</div>
 
-  <script>
-    async function getAnswer() {
-      const question = document.getElementById("question").value;
-      document.getElementById("answer").innerText = "Thinking...";
-      
-      try {
-        const response = await fetch("/.netlify/functions/askAI", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question }),
-        });
-        const data = await response.json();
-        document.getElementById("answer").innerText =
-          data.answer || data.error || "No response.";
-      } catch (error) {
-        document.getElementById("answer").innerText = "Error: " + error.message;
-      }
-    }
-  </script>
-</body>
-</html>
+<!-- PAGE 1: GET STARTED -->
+<div id="start" class="page active">
+  <h1>Welcome to Math Learning Portal</h1>
+  <p>Enter your nickname to get started:</p>
+  <input id="nickname" placeholder="Enter nickname..." />
+  <button onclick="startApp()">Get Started</button>
+  <p id="nickError" style="color:red;"></p>
+</div>
+
+<!-- PAGE 2: CHAPTERS -->
+<div id="chapters" class="page">
+  <h1>📘 Math's Chapters</h1>
+  <div id="chapterList"></div>
+</div>
+
+<!-- PAGE 3: CHAPTER DETAIL -->
+<div id="chapterPage" class="page">
+  <h2 id="chapterTitle"></h2>
+  <button onclick="showDoubtSolver()">Ask a Doubt 🤖</button>
+  <button onclick="showPostQuestion()">Post Question ✏️</button>
+  <button onclick="goBack()">⬅ Back</button>
+
+  <div id="postQuestion" style="display:none;">
+    <h3>Post a Question</h3>
+    <textarea id="userQuestion" rows="4" placeholder="Type your question..."></textarea><br/>
+    <button onclick="submitQuestion()">Submit</button>
+    <div id="questionList"></div>
+  </div>
+
+  <div id="doubtSolver" style="display:none;">
+    <h3>Ask Any Math or Concept Question</h3>
+    <input id="doubtInput" placeholder="Type your doubt..." />
+    <button onclick="getAnswer()">Get Answer</button>
+    <p id="answer" style="background:white;border-radius:10px;padding:10px;margin-top:15px;"></p>
+  </div>
+</div>
+
+<script>
+let users = [];
+let currentChapter = "";
+
+const chapters = [
+  "Rational Numbers", "Linear Equations in One Variable", "Understanding Quadrilaterals",
+  "Data Handling", "Squares and Square Roots", "Cubes and Cube Roots",
+  "Comparing Quantities", "Algebraic Expressions and Identities", "Mensuration",
+  "Exponents and Powers", "Direct and Inverse Proportions", "Factorisation", "Introduction to Graphs"
+];
+
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function startApp() {
+  const nickname = document.getElementById("nickname").value.trim();
+  if (!nickname) return document.getElementById("nickError").innerText = "Enter a nickname!";
+  if (users.includes(nickname)) return document.getElementById("nickError").innerText = "Nickname already taken!";
+  users.push(nickname);
+  document.getElementById("nickError").innerText = "";
+  renderChapters();
+  showPage("chapters");
+}
+
+function renderChapters() {
+  const container = document.getElementById("chapterList");
+  container.innerHTML = "";
+  chapters.forEach(ch => {
+    const div = document.createElement("div");
+    div.className = "chapter";
+    div.innerHTML = `<strong>${ch}</strong><br><button onclick="openChapter('${ch}')">Open</button>`;
+    container.appendChild(div);
+  });
+}
+
+function openChapter(chapter) {
+  currentChapter = chapter;
+  document.getElementById("chapterTitle").innerText = chapter;
+  showPage("chapterPage");
+}
+
+function goBack() {
+  showPage("chapters");
+  document.getElementById("doubtSolver").style.display = "none";
+  document.getElementById("postQuestion").style.display = "none";
+}
+
+function showDoubtSolver() {
+  document.getElementById("doubtSolver").style.display = "block";
+  document.getElementById("postQuestion").style.display = "none";
+}
+
+function showPostQuestion() {
+  document.getElementById("
