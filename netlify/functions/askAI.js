@@ -1,14 +1,6 @@
 export async function handler(event) {
   try {
-    if (!event.body) throw new Error("No body in request");
     const { question } = JSON.parse(event.body);
-
-    if (!process.env.OPENAI_API_KEY) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "OpenAI API key missing!" }),
-      };
-    }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -23,16 +15,18 @@ export async function handler(event) {
     });
 
     const data = await response.json();
-    console.log("OpenAI response:", data);
+
+    if (data.error) {
+      return { statusCode: 400, body: JSON.stringify({ error: data.error.message }) };
+    }
 
     return {
       statusCode: 200,
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        answer: data.choices[0].message.content,
+      }),
     };
-  } catch (err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
+  } catch (error) {
+    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
   }
 }
